@@ -61,14 +61,17 @@ typedef enum {
 	TYPE_4
 } BLINKING;
 
-int32_t blinkTime = 150;
-BLINKING blink = TYPE_4;
+uint32_t blinkTime = 150;
+BLINKING blink = TYPE_1;
+unsigned char isactive = 1;
+unsigned char counter = 0;  // overflow intentional
 
 void resetState(void) {
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14 | GPIO_PIN_13 | GPIO_PIN_15, GPIO_PIN_RESET);
 	if(blink == TYPE_2) {
 		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15 | GPIO_PIN_14, GPIO_PIN_SET);
 	}
+	counter = 0;
 }
 
 
@@ -104,69 +107,71 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
-  unsigned char counter = 0;  // overflow intentional
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-	  switch(blink) {
-	  case TYPE_1:
-		  // Binary blinking
-		  if(counter & 1) {
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
-			  if(counter & 2) {
-				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-				  if(counter & 4) {
-					  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-					  if(counter & 8) {
-						  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+	  if(isactive) {
+		  switch(blink) {
+		  case TYPE_1:
+			  // Binary blinking
+			  if(counter & 1) {
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+				  if(counter & 2) {
+					  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+					  if(counter & 4) {
+						  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+						  if(counter & 8) {
+							  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+						  }
 					  }
 				  }
 			  }
-		  }
-		  break;
-	  case TYPE_2:
-		  // Circle blinking
-		  if(counter & 1) {
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-		  } else {
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-		  }
-		  break;
-	  case TYPE_3:
-		  // Cross blinking
-		  if(counter & 1) {
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14, GPIO_PIN_SET);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15, GPIO_PIN_RESET);
-		  } else {
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15, GPIO_PIN_SET);
-			  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14, GPIO_PIN_RESET);
-		  }
-		  break;
-	  case TYPE_4:
-		  // Circle v2 blinking
-		  switch(counter % 4) {
-		  case 0:
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
 			  break;
-		  case 1:
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+		  case TYPE_2:
+			  // Circle blinking
+			  if(counter & 1) {
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+			  } else {
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+			  }
 			  break;
-		  case 2:
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+		  case TYPE_3:
+			  // Cross blinking
+			  if(counter & 1) {
+				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14, GPIO_PIN_SET);
+				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15, GPIO_PIN_RESET);
+			  } else {
+				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_15, GPIO_PIN_SET);
+				  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_14, GPIO_PIN_RESET);
+			  }
 			  break;
-		  case 3:
-			  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+		  case TYPE_4:
+			  // Circle v2 blinking
+			  switch(counter % 4) {
+			  case 0:
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
+				  break;
+			  case 1:
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+				  break;
+			  case 2:
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
+				  break;
+			  case 3:
+				  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
+				  break;
+			  }
 			  break;
 		  }
-		  break;
-	  }
 
-	  HAL_Delay(blinkTime);
-	  ++counter;
+		  HAL_Delay(blinkTime);
+		  ++counter;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -237,15 +242,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PC6 PC8 PC11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_8|GPIO_PIN_11;
+  /*Configure GPIO pins : PC6 PC8 PC9 PC11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA15 */
   GPIO_InitStruct.Pin = GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -259,7 +264,44 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	switch(GPIO_Pin) {
+	// Previous Mode
+	case GPIO_PIN_9:
+		if(blink != TYPE_1) {
+			blink--;
+		} else {
+			blink = TYPE_4;
+		}
+		resetState();
+		break;
+	// Next Mode
+	case GPIO_PIN_11:
+		if(blink != TYPE_4) {
+			blink++;
+		} else {
+			blink = TYPE_1;
+		}
+		resetState();
+		break;
+	// Slower blink
+	case GPIO_PIN_8:
+		blinkTime += 50;
+		break;
+	// Faster blink
+	case GPIO_PIN_6:
+		if(blinkTime > 50) {
+			blinkTime -= 50;
+		}
+		break;
+	// Toggle state
+	case GPIO_PIN_15:
+		isactive ^= 1;
+		break;
+	default:
+		HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+	}
+}
 /* USER CODE END 4 */
 
 /**
